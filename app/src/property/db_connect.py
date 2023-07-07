@@ -2,8 +2,8 @@ import pymysql
 
 def connect():
     conn = pymysql.connect(
-        host = 'localhost',
-        port = 33060,
+        host = 'svc.sel4.cloudtype.app',
+        port = 31196,
         user = 'data',
         password = 'data',
         database = 'recommend_system',
