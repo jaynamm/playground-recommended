@@ -27,6 +27,14 @@ class Data(BaseModel):
     location: Optional[str] = None
     skills: Optional[dict]
 
+
+@app.get("/")
+def index():
+    return {
+        "INFO" : "PLAYGROUND 추천시스템 API 서버입니다."
+    }
+
+
 @app.post("/recommend")
 async def recommend(data: Data):
     input_data = dict(data)
