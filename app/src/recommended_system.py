@@ -67,7 +67,7 @@ def post_recommended_data(input_data):
         user_profile[skill] = grade
     
     # 유사도 검증
-    skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column] > user_profile[column]).all() else (int(row[column]) / int(user_profile[column])) for column in skill_df.columns[1:]), axis=1)
+    skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column].astype(str) > user_profile[column].astype(str)).all() else (int(row[column]) / int(user_profile[column])) for column in skill_df.columns[1:]), axis=1)
 
     recommended_jobs = skill_df.nlargest(20, 'similarity_score')
     recommended_job_lst = recommended_jobs['id'].tolist()
