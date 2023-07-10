@@ -69,7 +69,7 @@ def post_recommended_data(input_data):
     # 유사도 검증
     skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column].astype(str) > user_profile[column].astype(str)).all() else (int(row[column]) / int(user_profile[column])) for column in skill_df.columns[1:]), axis=1)
 
-    recommended_jobs = skill_df.nlargest(20, 'similarity_score')
+    recommended_jobs = skill_df.nlargest(10, 'similarity_score')
     recommended_job_lst = recommended_jobs['id'].tolist()
 
     # 딕셔너리 형태로 결과 담기
