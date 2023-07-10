@@ -41,6 +41,5 @@ def index():
 async def recommend(data: Data):
     input_data = dict(data)
     result = recommended_system.post_recommended_data(input_data)
-    result = json.dumps(result, ensure_ascii=False)
     
     return result
