@@ -67,7 +67,8 @@ def post_recommended_data(input_data):
     # 유사도 집계 후 저장
     for column in skill_df.columns[1:-1]:
         skill_df["similarity_score"] += skill_df[column]
-        skill_df["similarity_score"] /= len(skill_df.columns)
+    
+    skill_df["similarity_score"] /= len(skill_df.columns)
 
     # 유사도 검증
     # skill_df['similarity_score'] = skill_df.apply(
