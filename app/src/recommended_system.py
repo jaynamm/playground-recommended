@@ -35,42 +35,53 @@ def post_recommended_data(input_data):
     job_name = input_data['job_name']
     location = input_data['location']
     skills = input_data['skills']
+
+    # filtering location and job
+    filtered_df = pd.DataFrame()
+    jd_list = get_result_for_ccd()
     
-    user_profile = pd.DataFrame(-1, index=[0], columns=feature.columns[1:])
+    # job 이 전체 선택이면, loc만 필터링
+    job_filter = jd_list['job_list'].str.contains(job_name)
+    loc_filter = jd_list['location'].str.contains(location)
+
+    if job_name == "all":
+        filtered_df = jd_list[loc_filter]
+    else:
+        filtered_df = jd_list[job_filter & loc_filter]
+
+
+    # 전체 채용 데이터에서 filtering 된 id 값에 포함되는 데이터만 정리
+    feature_filtered = feature[feature['id'].isin(filtered_df['id'].tolist())]
+
+    # filtering 된 데이터에서 user가 가진 skill 데이터 컬럼만 선택 (id 포함)
+    skill_df = feature_filtered[['id']+list(skills.keys())]
     
+    # id 제외한 user의 skill 셋
+    user_profile = pd.DataFrame(0, index=[0], columns=list(skills.keys())[1:]) 
+
     # 유저 프로필 데이터 입력
     for skill, grade in skills.items():
         skill = skill.upper()
-        if skill in user_profile.columns:
-            user_profile[skill] = grade
-            
-    feature = feature.replace(0, -1)
+        # if skill in user_profile.columns:
+        user_profile[skill] = grade
     
-    similarity_scores = cosine_similarity(user_profile, feature.iloc[:, 1:])
+    # 유사도 검증
+    skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column] > user_profile[column]).all() else (row[column] / user_profile[column]) for column in skill_df.columns[1:]) / len(skill_df.columns), axis=1)
 
-    feature['similarity_score'] = similarity_scores[0]
-
-    recommended_jobs = feature.nlargest(20, 'similarity_score')
-
-    recommended_job_ids = recommended_jobs['id'].tolist()
-    # recommended_score = recommended_jobs['similarity_score'].tolist()
-
+    recommended_jobs = skill_df.nlargest(20, 'similarity_score')
+    
     # 딕셔너리 형태로 결과 담기
     result = dict()
-    jd_list = get_result_for_ccd()
     
-    for rid in recommended_job_ids:
+    for rid in recommended_jobs['id'].tolist():
         job_detail = jd_list[jd_list['id'] == rid].values.tolist()[0]
         
-        # print(len(job_detail), job_detail)
-        
-        result[job_detail[0]] = {
+        result[str(job_detail[0])] = {
             'url': job_detail[1], 
             'job_list': ast.literal_eval(job_detail[2]), 
             'title': job_detail[3], 
             'company': job_detail[4], 
             'location': ast.literal_eval(job_detail[5])
             }
-
 
     return result
