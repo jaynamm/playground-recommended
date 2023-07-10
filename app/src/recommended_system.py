@@ -1,16 +1,25 @@
 import ast
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
+import json
 
 from src.property import db_connect
 
 
-def get_result_for_ccd():
+def get_result_for_ccd_loc(location):
     conn = db_connect.connect()
     
-    ccd_query = "SELECT id, url, job_list, title, company, location FROM combined_crawling_data"
+    ccd_query = "SELECT id, url, job_list, title, company, location FROM combined_crawling_data WHERE location LIKE %s"
+    ccd_df = pd.read_sql(ccd_query, conn, params=(f"%{location}%"))
     
-    ccd_df = pd.read_sql(ccd_query, conn)
+    conn.close()
+
+    return ccd_df
+
+def get_result_for_ccd_job_loc(job_name, location):
+    conn = db_connect.connect()
+    
+    ccd_query = "SELECT id, url, job_list, title, company, location FROM combined_crawling_data WHERE job_list LIKE %s AND location LIKE %s"
+    ccd_df = pd.read_sql(ccd_query, conn, params=(f"%{job_name}%", f"%{location}%"))
     
     conn.close()
 
@@ -36,19 +45,12 @@ def post_recommended_data(input_data):
     location = input_data['location']
     skills = input_data['skills']
 
-    # filtering location and job
     filtered_df = pd.DataFrame()
-    jd_list = get_result_for_ccd()
-    
-    # job 이 전체 선택이면, loc만 필터링
-    job_filter = jd_list['job_list'].str.contains(job_name)
-    loc_filter = jd_list['location'].str.contains(location)
 
     if job_name == "all":
-        filtered_df = jd_list[loc_filter]
+        filtered_df = get_result_for_ccd_loc(location)
     else:
-        filtered_df = jd_list[job_filter & loc_filter]
-
+        filtered_df = get_result_for_ccd_job_loc(job_name, location)
 
     # 전체 채용 데이터에서 filtering 된 id 값에 포함되는 데이터만 정리
     feature_filtered = feature[feature['id'].isin(filtered_df['id'].tolist())]
@@ -62,30 +64,26 @@ def post_recommended_data(input_data):
     # 유저 프로필 데이터 입력
     for skill, grade in skills.items():
         skill = skill.upper()
-        # if skill in user_profile.columns:
         user_profile[skill] = grade
     
     # 유사도 검증
-    skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column].astype(str) > user_profile[column].astype(str)).all() else (int(row[column]) / int(user_profile[column])) for column in skill_df.columns[1:]) / len(skill_df.columns), axis=1)
+    skill_df['similarity_score'] = skill_df.apply(lambda row: sum(0 if (row[column] > user_profile[column]).all() else (row[column] / user_profile[column]) for column in skill_df.columns[1:]), axis=1)
 
     recommended_jobs = skill_df.nlargest(20, 'similarity_score')
-    
+    recommended_job_lst = recommended_jobs['id'].tolist()
+
     # 딕셔너리 형태로 결과 담기
     result = dict()
-    rank = 0
     
-    for rid in recommended_jobs['id'].tolist():
-        rank += 1
-        
-        job_detail = jd_list[jd_list['id'] == rid].values.tolist()[0]
-        
-        result[rank] = {
-            'id': str(job_detail[0]),
-            'url': job_detail[1], 
-            'job_list': ast.literal_eval(job_detail[2]), 
-            'title': job_detail[3], 
-            'company': job_detail[4], 
-            'location': ast.literal_eval(job_detail[5])
+    for i in range(20):
+        job_detail = filtered_df[filtered_df['id'] == recommended_job_lst[i]].values.tolist()[0]
+        result[i+1] = {
+            "id": job_detail[0],
+            "url": job_detail[1], 
+            "job_list": ast.literal_eval(job_detail[2]), 
+            "title": job_detail[3], 
+            "company": job_detail[4], 
+            "location": ast.literal_eval(job_detail[5])
             }
 
     return result
