@@ -2,6 +2,8 @@ from fastapi import FastAPI, Body
 from pydantic import BaseModel
 from typing import Optional
 
+import json
+
 from src import recommended_system
 
 app = FastAPI()
@@ -39,5 +41,6 @@ def index():
 async def recommend(data: Data):
     input_data = dict(data)
     result = recommended_system.post_recommended_data(input_data)
+    result = json.dumps(result, ensure_ascii=False)
     
     return result
