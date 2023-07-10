@@ -58,8 +58,8 @@ def post_recommended_data(input_data):
 
     # 유사도 검증
     for column in skill_df.columns[1:]:
-        user_grade = user_profile[column].iloc[0].astype(str)
-        skill_df[column] = np.where(skill_df[column].astype(str) > user_grade, 0, skill_df[column].astype(float) / float(user_grade))
+        user_grade = str(user_profile[column].iloc[0])
+        skill_df[column] = np.where(skill_df[column].astype(str) > user_grade, 0, skill_df[column] / int(user_grade))
 
     # 유사도 저장 컬럼 초기화
     skill_df['similarity_score'] = 0
