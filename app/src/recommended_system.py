@@ -1,6 +1,6 @@
 import ast
 import pandas as pd
-import json
+import numpy as np
 
 from src.property import db_connect
 
@@ -48,8 +48,6 @@ def post_recommended_data(input_data):
     # filtering 된 데이터에서 user가 가진 skill 데이터 컬럼만 선택 (id 포함)
     skill_df = feature_filtered[['id']+list(skills.keys())]
     
-    print(skill_df)
-    
     # id 제외한 user의 skill 셋
     user_profile = pd.DataFrame(0, index=[0], columns=list(skills.keys())[1:]) 
 
@@ -57,22 +55,35 @@ def post_recommended_data(input_data):
     for skill, grade in skills.items():
         skill = skill.upper()
         user_profile[skill] = grade
+
+    # 유사도 검증
+    for column in skill_df.columns[1:]:
+        user_grade = user_profile[column].iloc[0].astype(int)
+        skill_df[column] = np.where(skill_df[column].astype(int) > user_grade, 0, skill_df[column] / user_grade)
+
+    # 유사도 저장 컬럼 초기화
+    skill_df['similarity_score'] = 0
     
+    # 유사도 집계 후 저장
+    for column in skill_df.columns[1:-1]:
+        skill_df["similarity_score"] += skill_df[column]
+        skill_df["similarity_score"] /= len(skill_df.columns)
+
     # 유사도 검증
     # skill_df['similarity_score'] = skill_df.apply(
     #     lambda row: sum(0 if (row[column].astype(str) > user_profile[column].astype(str)).all() else (int(row[column]) / int(user_profile[column])) for column in skill_df.columns[1:]), 
     #     axis=1
     # )
     
-    user_skills = list(skills.keys())[1:]
-    similarity_scores = np.where((skill_df[user_skills].astype(str) > user_profile[user_skills].astype(str)).all(axis=1),
-                                 0,
-                                 skill_df[user_skills].div(user_profile[user_skills]).sum(axis=1))
-    skill_df['similarity_score'] = similarity_scores / len(user_skills)
-
     recommended_jobs = skill_df.nlargest(20, 'similarity_score')
     recommended_job_lst = recommended_jobs['id'].tolist()
-
+    
+    print("="*10, "recommended_jobs", "="*10)
+    print(recommended_jobs)
+    
+    print("="*10, "recommended_job_lst", "="*10)
+    print(recommended_job_lst)
+    
     # 딕셔너리 형태로 결과 담기
     result = dict()
     
