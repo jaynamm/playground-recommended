@@ -72,11 +72,15 @@ def post_recommended_data(input_data):
     
     # 딕셔너리 형태로 결과 담기
     result = dict()
+    rank = 0
     
     for rid in recommended_jobs['id'].tolist():
+        rank += 1
+        
         job_detail = jd_list[jd_list['id'] == rid].values.tolist()[0]
         
-        result[str(job_detail[0])] = {
+        result[rank] = {
+            'id': str(job_detail[0]),
             'url': job_detail[1], 
             'job_list': ast.literal_eval(job_detail[2]), 
             'title': job_detail[3], 
