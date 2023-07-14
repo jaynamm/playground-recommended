@@ -35,6 +35,9 @@ def post_recommended_data(input_data):
 
     filtered_df = pd.DataFrame()
 
+    if location == "전국":
+        location = "한국"
+
     if job_name == "all":
         filtered_df = get_result_for_ccd_loc(conn, location)
     else:
